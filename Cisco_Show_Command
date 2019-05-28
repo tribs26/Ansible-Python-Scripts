@@ -1,0 +1,25 @@
+- name: CISCO Show Commands
+  hosts: all
+  gather_facts: false
+  connection: local
+  become: true
+  vars_files:
+   - password.yml
+   
+  tasks:
+  - ios_command:
+     commands:
+       - show ip bgp summary
+       - sh ip bgp neighbors 2.21.175.93 advertised-routes
+       - sh ip bgp neighbors  209.200.182.161 advertised-routes
+       - sh int g0/0/1
+       - sh int te0/1/0.901
+     provider:
+      transport: cli
+      authorize: yes
+      auth_pass: "{{password}}"
+      username: bhamboa
+      password: "{{password}}"
+    register : output
+  - debug: var=output.stdout
+  - copy: content="{{output.stdout_lines}}" dest=./output/arista/{{ansible_host}}.conf 
