@@ -1,0 +1,112 @@
+---
+- name: Akamai Tunnel Checks
+  hosts: all
+  gather_facts: false
+  connection: network_cli
+
+  vars:
+    cli:
+      host: "{{ ansible_host }}"
+      username: "{{ ansible_user }}"
+      password: "{{ ansible_ssh_pass }}"
+
+  tasks:
+    - name: Capture interface status of router Router1
+      ios_command:
+        commands:
+            - show interface description
+            - show ip interface brief
+      register: output1
+      when: "'Router1' in inventory_hostname"
+
+    - name: Capture interface status of router Router2
+      ios_command:
+        commands:
+            - show interface description
+            - show ip interface brief
+      register: output2
+      when: "'Router2' in inventory_hostname"
+
+    - name: BGP status Routes advertised from Router1 towards Akamai Peers
+      ios_command:
+        commands:
+            - "show ip bgp all summary | in 20.21"
+            - "show ip bgp all summary | in 219."
+            - "show ip bgp neighbors 1.1.1.1 advertised-routes | in 0.0.0.0"
+            - "show ip bgp neighbors 1.1.1.1 advertised-routes | in 0.0.0.0"
+      register: output3
+      when: "'Router1' in inventory_hostname"
+
+    - name: Routes advertised from Router 2 towards Akamai Peers
+      ios_command:
+        commands:
+            - "show ip bgp all summary | in 79.43"
+            - "show ip bgp all summary | in 223."
+            - "show ip bgp neighbors 1.1.1.1 advertised-routes | in 0.0.0.0"
+            - "show ip bgp neighbors 2.2.2.2 advertised-routes | in 0.0.0.0"
+      register: output4
+      when: "'Router2' in inventory_hostname"
+
+    - name: Ping from router Router1 to Akamai Tunnel1
+      net_ping:
+        dest: 2.2.2.2
+        source: tunnel1
+        count: 10
+      register: ping1
+      when: "'Router1' in inventory_hostname"
+
+    - name: Ping from Router1 to Akamai Tunnel2
+      net_ping:
+        dest: 2.2.2.2
+        source: tunnel2
+        count: 10
+      register: ping2
+      when: "'Router1' in inventory_hostname"
+
+    - name: Ping from Router2 to Akamai Tunnel1
+      net_ping:
+        dest: 2.2.2.2
+        source: tunnel1
+        count: 10
+      register: ping3
+      when: "'Router2' in inventory_hostname"
+
+    - name: Ping from Router2 to Akamai Tunnel2
+      net_ping:
+        dest: 2.2.2.2
+        source: tunnel2
+        count: 10
+      register: ping4
+      when: "'Router2' in inventory_hostname"
+
+    - name: show output of interface status of router Router1
+      debug:
+        var: output1.stdout_lines
+
+    - name: show BGP status and route advertisement from router Router1
+      debug:
+        var: output3.stdout_lines
+
+    - name: Ping output from Router Router1 to Akamai Tunnel 1
+      debug:
+        var: ping1
+
+    - name: Ping output from Router Router1 to Akamai Tunnel 2
+      debug:
+        var: ping2
+
+    - name: show output of interface status of router Router2
+      debug:
+        var: output2.stdout_lines
+
+    - name: show BGP status and route advertisement from router Router2
+      debug:
+        var: output4.stdout_lines
+
+    - name: ping output from Router Router2 to Akamai Tunnel 1
+      debug:
+        var: ping3
+
+    - name: ping output from Router Router2 to Akamai Tunnel 2
+      debug:
+        var: ping4
